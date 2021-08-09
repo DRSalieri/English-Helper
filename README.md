@@ -28,7 +28,7 @@
 
 ### 使用截图
 
-![image-20210809132531588](C:\Users\75497\AppData\Roaming\Typora\typora-user-images\image-20210809132531588.png)
+![image-20210809132531588](image.png)
 
 ### Todo
 
