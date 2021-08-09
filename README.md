@@ -8,9 +8,9 @@
 
 ### 使用方法
 
-1. 从 [该项目的release](https://github.com/cssxsh/arknights-helper/releases)中，下载最新版jar形式插件
+1. 从 [该项目的release](https://github.com/DRSalieri/miraitest/releases)中，下载最新版jar形式插件
 2. 将该jar文件放入 Mirai Console 的 Plugins 文件夹中
-3. 从[该项目的release](https://github.com/cssxsh/arknights-helper/releases)，下载 Books.zip 文件，将其解压到 mcl的目录下 ....data/english-helper/BooksData/Books（如果没有文件夹可以自行创建）
+3. 从 [该项目的release](https://github.com/DRSalieri/miraitest/releases)中，下载 Books.zip 文件，将其解压到 mcl的目录下 ....data/english-helper/BooksData/Books（如果没有文件夹可以自行创建）
 
 ### 功能
 
