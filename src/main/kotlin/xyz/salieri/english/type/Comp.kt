@@ -66,7 +66,8 @@ class Comp(number: Long){
             return;
         }
         // 次数
-        var num = msgs[2].trim().toIntOrNull()
+
+        var num = msgs.elementAtOrNull(2)?.trim().toIntOrNull()
         if( num == null || num > timesCeil || num < timesFloor){
             this.msg += "不合法的题目数量（合法范围为[${timesFloor},${timesCeil}]），设置为默认数量${timesDefault}\n"
             num = timesDefault
@@ -163,7 +164,7 @@ class Comp(number: Long){
         背单词插件，作者：salieri
         项目地址：https://github.com/DRSalieri/miraitest
         ===========================
-        请输入"背单词 <book> <times>"
+        请输入"背单词 <book> [times]"
         进行设定
         目前支持的单词书有：
         ${BookList.joinToString(separator = "  ")}
