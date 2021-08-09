@@ -85,7 +85,7 @@ class Comp(number: Long){
         this.msg += "群${this.groupnum}的英语竞赛设定完成！\n"
         this.msg += "单词书为：${this.book}\n"
         this.msg += "题目数为：${this.quesnum}\n"
-        this.msg += "时间限制：${this.timelim}\n"
+        this.msg += "时间限制：${this.timelim / 1000}\n"
         this.msg += "请输入\"开始\"启动竞赛！"
     }
 
@@ -171,8 +171,8 @@ class Comp(number: Long){
 
     suspend fun intro(){
         msg += "背单词插件，作者：salieri\n"
-        msg += "项目地址：\n"
-        msg += "==============================\n"
+        msg += "项目地址：https://github.com/DRSalieri/miraitest\n"
+        msg += "===========================\n"
         msg += "请输入\"背单词 <book> <times>\"\n进行设定\n"
         msg += "目前支持的单词书有：\n"
         BookList.forEach{

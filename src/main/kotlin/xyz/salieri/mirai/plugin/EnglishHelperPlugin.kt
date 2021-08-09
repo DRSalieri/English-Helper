@@ -27,7 +27,7 @@ object EnglishHelperPlugin : KotlinPlugin(
     }
 ) {
     override fun onEnable() {
-         logger.info { "English-helper loaded." }
+         logger.info { "单词竞赛插件已部署." }
          // 数据
          EnglishUserData.reload()
          // 命令
