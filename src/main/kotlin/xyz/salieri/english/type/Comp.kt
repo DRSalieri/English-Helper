@@ -91,24 +91,25 @@ class Comp(number: Long){
     suspend fun run(){
         this.state = STATE_RUNNING
         val chan = GlobalEventChannel.filter{ it is GroupMessageEvent && it.group.id == this.groupnum } // 本群消息的信道
-        while( this.quesindex <= quesnum ){
+        while( this.quesindex <= quesnum ) {
             // 产生随机一道题目，打印信息
             val obj: Word = randomword(this.book)
             this.msg = wordToQuestion(this.quesindex,this.quesnum,obj,this.timelim)
             this.sendMsg()
             // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
-            var objEvent: GroupMessageEvent? = nextEventOrNull<GroupMessageEvent>(5_000){
-                it.message.contentToString().trim().lowercase() == obj.word.trim().lowercase()
+            suspend fun listenFor(timeoutMillis: Long, expect: String = obj.word): GroupMessageEvent? {
+                return nextEventOrNull<GroupMessageEvent>(timeoutMillis) {
+                    it.message.contentToString().trim().equals(expect, ignoreCase = true)
+                }
             }
+            var objEvent: GroupMessageEvent? = listenFor(5000)
             if(objEvent == null){
                 // 第一个提示
                 // 给出第一个字母
                 msg += "5s内没人猜出来哦，给你们个小提示\n"
                 msg += "这个单词的首字母是${obj.word[0]}"
                 this.sendMsg()
-                objEvent = nextEventOrNull<GroupMessageEvent>(5_000){
-                    it.message.contentToString().trim().lowercase() == obj.word.trim().lowercase()
-                }
+                objEvent = listenFor(5000)
                 if(objEvent == null){
                     // 第二个提示，当单词长度大于3才给，给出第二个字母
                     if (obj.word.length > 3){
@@ -116,13 +117,11 @@ class Comp(number: Long){
                         msg += "这个单词的前三个字母是${obj.word[0]}${obj.word[1]}${obj.word[2]}"
                         this.sendMsg()
                     }
-                    objEvent = nextEventOrNull<GroupMessageEvent>(10_000){
-                        it.message.contentToString().trim().lowercase() == obj.word.trim().lowercase()
-                    }
+                    objEvent = listenFor(10_000)
                 }
             }
 
-            if(objEvent == null){
+            if(objEvent == null) {
                 // 没有人回答出来
                 msg += "时间到，很可惜没有人答对。\n"
             } else {
@@ -146,12 +145,8 @@ class Comp(number: Long){
 
             this.sendMsg()
 
-            // 等待5s
-            objEvent = nextEventOrNull<GroupMessageEvent>(3_000){
-                it.message.contentToString().trim().lowercase() == "gkd"
-            }
-
-
+            // 等待3s
+            listenFor(3_000, "gkd")
         }
         // 结束，打印玩家列表
         msg += "游戏结束！本局游戏得分如下：\n" +
