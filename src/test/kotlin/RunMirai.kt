@@ -12,7 +12,7 @@ suspend fun main() {
     EnglishHelperPlugin.load()
     EnglishHelperPlugin.enable()
 
-    val bot = MiraiConsole.addBot(234867252, "a135819183272333") {
+    val bot = MiraiConsole.addBot(, "") {
         fileBasedDeviceInfo()
     }.alsoLogin()
 
