@@ -141,11 +141,12 @@ class Comp(number: Long){
                     false // Keep listening
                 }
                 msg += """
-                    ${at(first)}首先回答正确，获得2分，当前积分${score[first]}。
-                    其他在${timeOutMills}ms内回答正确的有：
-                    ${(answered - first).joinToString("\n") { "${at(it)}获得1分，当前积分${score[it]}分。"}}
-                    
-                    """.trimIndent()
+                    #${at(first)}首先回答正确，获得2分，当前积分${score[first]}。
+                    #其他在${timeOutMills}ms内回答正确的有：
+                    ${(answered - first).joinToString("\n") { 
+                        "#${at(it)}获得1分，当前积分${score[it]}分。"
+                    }}
+                    #""".trimMargin("#")
             }
 
             // 录入正确答案
@@ -167,7 +168,7 @@ class Comp(number: Long){
         // 结束，打印玩家列表
         msg += "游戏结束！本局游戏得分如下：\n" +
         score.entries.sortedByDescending { it.value }.joinToString("\n") { (playerId, score) ->
-            "${score}   ${this.at(playerId)}\n"
+            "${score}   ${this.at(playerId)}"
             // EnglishUserData.coin[it.key] += it.value
         }
         this.sendMsg()
