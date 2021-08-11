@@ -129,7 +129,7 @@ class Comp(number: Long){
                 // 有人回答出来了，加分
                 val answered = mutableSetOf<Long>(objEvent.sender.id)
                 val first = objEvent.sender.id
-                val timeOutMills = 500L
+                val timeOutMills = 1_000L
                 score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)
 
                 nextEventOrNull<GroupMessageEvent>(timeOutMills) {
@@ -143,7 +143,7 @@ class Comp(number: Long){
                 msg += """
                     ${at(first)}首先回答正确，获得2分，当前积分${score[first]}。
                     其他在${timeOutMills}ms内回答正确的有：
-                    ${(answered - first).joinToString("\n") { "${at(it)}获得1分，当前积分${score[it]}分"}}。
+                    ${(answered - first).joinToString("\n") { "${at(it)}获得1分，当前积分${score[it]}分。"}}
                     
                     """.trimIndent()
             }
@@ -154,8 +154,8 @@ class Comp(number: Long){
                 "[${it.pos}] ${it.tran}"
             }
 
-            if( quesindex != quesnum )msg += "3s后继续，输入\"gkd\"立即开始下一题哦"
-            else msg += "3s后公布结果，输入\"gkd\"立即公布哦"
+            if( quesindex != quesnum )msg += "\n3s后继续，输入\"gkd\"立即开始下一题哦"
+            else msg += "\n3s后公布结果，输入\"gkd\"立即公布哦"
 
             this.quesindex ++
 

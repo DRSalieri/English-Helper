@@ -12,9 +12,5 @@ suspend fun main() {
     EnglishHelperPlugin.load()
     EnglishHelperPlugin.enable()
 
-    val bot = MiraiConsole.addBot(, "") {
-        fileBasedDeviceInfo()
-    }.alsoLogin()
-
     MiraiConsole.job.join()
 }
