@@ -35,7 +35,7 @@ class Comp(number: Long){
     var book: String = "CET4"
 
     var msg: String = ""
-    var score: MutableMap<Long, Int> = mutableMapOf()
+    var score: MutableMap<Long, Int> = mutableMapOf<Long, Int>().withDefault { 0 }
     var timelim: Long = timeLimit
 
     fun at(num: Long): String{
@@ -51,7 +51,7 @@ class Comp(number: Long){
     @OptIn(ExperimentalStdlibApi::class)
     fun set(msginput: String, groupnum: Long) {
         // 初始化分数
-        score = mutableMapOf()
+        score = mutableMapOf<Long, Int>().withDefault { 0 }
 
         // 群号
         this.groupnum = groupnum
@@ -67,7 +67,7 @@ class Comp(number: Long){
         }
         // 次数
 
-        var num = msgs.elementAtOrNull(2)?.trim().toIntOrNull()
+        var num = msgs.elementAtOrNull(2)?.trim()?.toIntOrNull()
         if( num == null || num > timesCeil || num < timesFloor){
             this.msg += "不合法的题目数量（合法范围为[${timesFloor},${timesCeil}]），设置为默认数量${timesDefault}\n"
             num = timesDefault
@@ -98,19 +98,19 @@ class Comp(number: Long){
             this.msg = wordToQuestion(this.quesindex,this.quesnum,obj,this.timelim)
             this.sendMsg()
             // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
-            suspend fun listenFor(timeoutMillis: Long, expect: String = obj.word): GroupMessageEvent? {
+            suspend fun listenFor(timeoutMillis: Long, expect: String): GroupMessageEvent? {
                 return nextEventOrNull<GroupMessageEvent>(timeoutMillis) {
                     it.message.contentToString().trim().equals(expect, ignoreCase = true)
                 }
             }
-            var objEvent: GroupMessageEvent? = listenFor(5000)
+            var objEvent: GroupMessageEvent? = listenFor(5000L, obj.word)
             if(objEvent == null){
                 // 第一个提示
                 // 给出第一个字母
                 msg += "5s内没人猜出来哦，给你们个小提示\n"
                 msg += "这个单词的首字母是${obj.word[0]}"
                 this.sendMsg()
-                objEvent = listenFor(5000)
+                objEvent = listenFor(5000, obj.word)
                 if(objEvent == null){
                     // 第二个提示，当单词长度大于3才给，给出第二个字母
                     if (obj.word.length > 3){
@@ -118,7 +118,7 @@ class Comp(number: Long){
                         msg += "这个单词的前三个字母是${obj.word[0]}${obj.word[1]}${obj.word[2]}"
                         this.sendMsg()
                     }
-                    objEvent = listenFor(10_000)
+                    objEvent = listenFor(10_000, obj.word)
                 }
             }
 
@@ -127,10 +127,25 @@ class Comp(number: Long){
                 msg += "时间到，很可惜没有人答对。\n"
             } else {
                 // 有人回答出来了，加分
-                score[objEvent.sender.id] = score.getOrDefault(objEvent.sender.id, 0)
+                val answered = mutableSetOf<Long>(objEvent.sender.id)
+                val first = objEvent.sender.id
+                val timeOutMills = 500L
+                score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)
 
-                msg += (at(objEvent.sender.id) + "\n")
-                msg += "恭喜你回答正确，获得1分！您目前的分数为${score[objEvent.sender.id]}\n"
+                nextEventOrNull<GroupMessageEvent>(timeOutMills) {
+                    if (it.message.contentToString().trim().equals(obj.word, ignoreCase = true) &&
+                        !answered.contains(it.sender.id)) {
+                        answered.add(it.sender.id)
+                        score[it.sender.id] = 1 + score.getValue(it.sender.id)
+                    }
+                    false // Keep listening
+                }
+                msg += """
+                    ${at(first)}首先回答正确，获得2分，当前积分${score[first]}。
+                    其他在${timeOutMills}ms内回答正确的有：
+                    ${(answered - first).joinToString("\n") { "${at(it)}获得1分，当前积分${score[it]}分"}}。
+                    
+                    """.trimIndent()
             }
 
             // 录入正确答案
