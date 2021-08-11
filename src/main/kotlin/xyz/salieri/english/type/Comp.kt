@@ -35,7 +35,7 @@ class Comp(number: Long){
     var book: String = "CET4"
 
     var msg: String = ""
-    var score: MutableMap<Long, Int> = mutableMapOf()
+    var score: MutableMap<Long, Int> = mutableMapOf<Long, Int>().withDefault { 0 }
     var timelim: Long = timeLimit
 
     fun at(num: Long): String{
@@ -51,7 +51,7 @@ class Comp(number: Long){
     @OptIn(ExperimentalStdlibApi::class)
     fun set(msginput: String, groupnum: Long) {
         // 初始化分数
-        score = mutableMapOf()
+        score = mutableMapOf<Long, Int>().withDefault { 0 }
 
         // 群号
         this.groupnum = groupnum
@@ -127,10 +127,25 @@ class Comp(number: Long){
                 msg += "时间到，很可惜没有人答对。\n"
             } else {
                 // 有人回答出来了，加分
-                score[objEvent.sender.id] = score.getOrDefault(objEvent.sender.id, 0)
+                val answered = mutableSetOf<Long>(objEvent.sender.id)
+                val first = objEvent.sender.id
+                val timeOutMills = 500L
+                score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)
 
-                msg += (at(objEvent.sender.id) + "\n")
-                msg += "恭喜你回答正确，获得1分！您目前的分数为${score[objEvent.sender.id]}\n"
+                nextEventOrNull<GroupMessageEvent>(timeOutMills) {
+                    if (it.message.contentToString().trim().equals(obj.word, ignoreCase = true) &&
+                        !answered.contains(it.sender.id)) {
+                        answered.add(it.sender.id)
+                        score[it.sender.id] = 1 + score.getValue(it.sender.id)
+                    }
+                    false // Keep listening
+                }
+                msg += """
+                    ${at(first)}首先回答正确，获得2分，当前积分${score[first]}。
+                    其他在${timeOutMills}ms内回答正确的有：
+                    ${(answered - first).joinToString("\n") { "${at(it)}获得1分，当前积分${score[it]}分"}}。
+                    
+                    """.trimIndent()
             }
 
             // 录入正确答案
