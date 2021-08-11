@@ -23,9 +23,9 @@ fun randomword(name: String): Word{
 fun wordToQuestion(index: Int,total: Int,word: Word,timeLim: Long): String{
     return """
         第(${index}/${total})题，时限：[${timeLim / 1_000}秒]
-    ${word.trans.joinToString("\n") {
-        "[${it.pos}] ${it.tran}"
-    }}
-    这个单词有${word.word.length}个字母
-    """.trimIndent()
+        ${word.trans.joinToString("\n") {
+            "[${it.pos}] ${it.tran}"
+        }}
+        这个单词有${word.word.length}个字母
+        """.trimIndent()
 }
