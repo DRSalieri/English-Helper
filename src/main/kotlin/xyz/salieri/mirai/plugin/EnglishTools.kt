@@ -7,21 +7,16 @@ import xyz.salieri.english.type.Word
 import xyz.salieri.english.type.defaultword
 import xyz.salieri.mirai.plugin.bookData
 
-val books: Map<String, WordTable> = mapOf(
-    "CET4" to bookData.BookCET4,
-    "CET6" to bookData.BookCET6,
-    "TOEFL" to bookData.BookTOEFL,
-    "IELTS" to bookData.BookIELTS,
-    "SAT" to bookData.BookSAT,
-    "GRE" to bookData.BookGRE,
-    "KAOYAN" to bookData.BookKAOYAN,
-)
 fun randomword(name: String): Word{
-    val book = books[name]
-    if(book != null) {
-        return book.values.random()
-    } else {
-        return defaultword
+    return when(name) {
+        "CET4" -> bookData.BookCET4.values.random()
+        "CET6" -> bookData.BookCET6.values.random()
+        "TOEFL" -> bookData.BookTOEFL.values.random()
+        "IELTS" -> bookData.BookIELTS.values.random()
+        "SAT" -> bookData.BookSAT.values.random()
+        "GRE" -> bookData.BookGRE.values.random()
+        "KAOYAN" -> bookData.BookKAOYAN.values.random()
+        else -> defaultword
     }
 }
 // 将单词转化为题目
