@@ -100,9 +100,11 @@ class Comp(number: Long){
             this.msg = wordToQuestion(this.quesindex,this.quesnum,obj,this.timelim)
             this.sendMsg()
             // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
-            suspend fun listenFor(timeoutMillis: Long, expect: String): GroupMessageEvent? {
+            suspend fun listenFor(timeoutMillis: Long, expects: String): GroupMessageEvent? {
                 return nextEventOrNull<GroupMessageEvent>(timeoutMillis) {
-                    it.message.contentToString().trim().equals(expect, ignoreCase = true)
+                    expects.split("/").any {expect ->
+                        it.message.contentToString().trim().equals(expect, ignoreCase = true)
+                    }
                 }
             }
             var objEvent: GroupMessageEvent? = listenFor(5000L, obj.word)

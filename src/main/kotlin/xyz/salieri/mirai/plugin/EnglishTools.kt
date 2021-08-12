@@ -38,6 +38,6 @@ fun wordToQuestion(index: Int,total: Int,word: Word,timeLim: Long): String{
         ${word.trans.joinToString("\n") {
             "#[${it.pos}] ${it.tran}"
         }}
-        #这个单词有${word.word.length}个字母
+        #这个单词有${word.word.split('/')[0].length}个字母
         """.trimMargin("#")
 }
