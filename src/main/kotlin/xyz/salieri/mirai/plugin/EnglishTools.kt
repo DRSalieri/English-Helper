@@ -17,7 +17,11 @@ internal val CustomJson = Json {
 }
 val booksCache: MutableMap<String, WordTable> = mutableMapOf()
 
-fun randomword(name: String): Word{
+fun getBooks(): String {
+    return EnglishHelperPlugin.dataFolder.resolve("BooksData/Books").listFiles().joinToString(" ") { it.name.replace(".json", "") }
+}
+
+fun randomword(name: String): Word {
     val path = "BooksData/Books/$name.json" // For complicity
     if (!booksCache.contains(name)) {
         println("$name loaded")
