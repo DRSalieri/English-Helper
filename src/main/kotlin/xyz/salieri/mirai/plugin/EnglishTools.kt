@@ -1,24 +1,32 @@
 package xyz.salieri.mirai.plugin
 
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import net.mamoe.mirai.event.EventPriority
 import net.mamoe.mirai.event.events.MessageEvent
 import net.mamoe.mirai.event.syncFromEventOrNull
 import xyz.salieri.english.type.Word
 import xyz.salieri.english.type.defaultword
-import xyz.salieri.mirai.plugin.bookData
+
+typealias WordTable = Map<String, Word>
+internal val CustomJson = Json {
+    prettyPrint = true
+    ignoreUnknownKeys = true
+    isLenient = true
+    allowStructuredMapKeys = true
+}
+val booksCache: MutableMap<String, WordTable> = mutableMapOf()
 
 fun randomword(name: String): Word{
-    return when(name) {
-        "CET4" -> bookData.BookCET4.values.random()
-        "CET6" -> bookData.BookCET6.values.random()
-        "TOEFL" -> bookData.BookTOEFL.values.random()
-        "IELTS" -> bookData.BookIELTS.values.random()
-        "SAT" -> bookData.BookSAT.values.random()
-        "GRE" -> bookData.BookGRE.values.random()
-        "KAOYAN" -> bookData.BookKAOYAN.values.random()
-        else -> defaultword
+    val path = "BooksData/Books/$name.json" // For complicity
+    if (!booksCache.contains(name)) {
+        println("$name loaded")
+        val l: WordTable = CustomJson.decodeFromString(EnglishHelperPlugin.dataFolder.resolve(path).readText())
+        booksCache[name] = l
     }
+    return booksCache[name]!!.values.random()
 }
+
 // 将单词转化为题目
 fun wordToQuestion(index: Int,total: Int,word: Word,timeLim: Long): String{
     return """
