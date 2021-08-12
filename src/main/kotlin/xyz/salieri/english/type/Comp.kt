@@ -56,15 +56,17 @@ class Comp(number: Long){
         // 群号
         this.groupnum = groupnum
         val msgs = msginput.split(" ")
-        // 检测是否有这本书
-        val bookname = msgs[1].trim().uppercase()
-        if( BookList.contains(bookname) ){
-            // 存在这本书
-            this.book = bookname
-        } else {
-            this.msg += "不存在${bookname}这本单词书，目前存在的单词书有：\n" + BookList.joinToString(separator = "  ")
-            return;
+        val bookname = msgs[1].trim()
+
+        try {
+            randomword(bookname)
+        } catch (e: java.io.FileNotFoundException) {
+            println(e)
+            this.msg += "不存在${bookname}这本单词书，目前存在的单词书有：\n" + getBooks()
+            return
         }
+        // 存在这本书
+        this.book = bookname
         // 次数
 
         var num = msgs.elementAtOrNull(2)?.trim()?.toIntOrNull()
@@ -183,7 +185,8 @@ class Comp(number: Long){
         请输入"背单词 <book> [times]"
         进行设定
         目前支持的单词书有：
-        ${BookList.joinToString(separator = "  ")}
+        ${getBooks()}。
+        
         次数限制为[${timesFloor},${timesCeil}]，默认为${timesDefault}次
         """.trimIndent()
         this.sendMsg()
