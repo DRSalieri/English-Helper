@@ -117,7 +117,7 @@ class Comp(number: Long){
                 objEvent = listenFor(5000, obj.word)
                 if(objEvent == null){
                     // 第二个提示，当单词长度大于3才给，给出第二个字母
-                    if (obj.word.length > 3){
+                    if (obj.word.split('/')[0].length > 3){
                         msg += "10s内没人猜出来啦，再给你们个提示\n"
                         msg += "这个单词的前三个字母是${obj.word[0]}${obj.word[1]}${obj.word[2]}"
                         this.sendMsg()
