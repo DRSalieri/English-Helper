@@ -15,6 +15,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.mamoe.mirai.event.*
 import xyz.salieri.mirai.plugin.EnglishUserData
+import java.util.*
 
 val STATE_SLEEP = 0             // 等待设置
 val STATE_READY = 1             // 等待启动
@@ -92,79 +93,89 @@ class Comp(number: Long){
     suspend fun run(){
         this.state = STATE_RUNNING
         val chan = GlobalEventChannel.filter{ it is GroupMessageEvent && it.group.id == this.groupnum } // 本群消息的信道
-        for (quesIndex in 1..quesnum) {
-            // 产生随机一道题目，打印信息
-            val obj: Word = randomword(this.book)
-            this.msg = wordToQuestion(quesIndex,this.quesnum,obj,this.timelim)
-            this.sendMsg()
-            // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
-            suspend fun listenFor(timeoutMillis: Long, expects: String): GroupMessageEvent? {
-                return nextEventOrNull<GroupMessageEvent>(timeoutMillis) {
-                    expects.split("/").any {expect ->
-                        it.message.contentToString().trim().equals(expect, ignoreCase = true)
-                    }
+        var words = mutableSetOf<Word>()
+        var hardWords = mutableSetOf<Word>()
+        while (words.size < quesnum) {
+            words.add(randomword(this.book))
+        }
+
+        suspend fun listenFor(timeoutMillis: Long, expects: String): GroupMessageEvent? {
+            return nextEventOrNull<GroupMessageEvent>(timeoutMillis) {
+                expects.split("/").any {expect ->
+                    it.message.contentToString().trim().equals(expect, ignoreCase = true)
                 }
             }
-            var objEvent: GroupMessageEvent? = listenFor(5000L, obj.word)
-            if(objEvent == null){
-                // 第一个提示
-                // 给出第一个字母
-                msg += "5s内没人猜出来哦，给你们个小提示\n"
-                msg += "这个单词的首字母是${obj.word[0]}"
+        }
+        while (words.size > 0) {
+            for ((index, obj) in words.withIndex()) {
+                // 产生随机一道题目，打印信息
+                this.msg = wordToQuestion(index + 1, words.size ,obj, this.timelim)
                 this.sendMsg()
-                objEvent = listenFor(5000, obj.word)
+                // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
+                var objEvent: GroupMessageEvent? = listenFor(5000L, obj.word)
                 if(objEvent == null){
-                    // 第二个提示，当单词长度大于3才给，给出第二个字母
-                    if (obj.word.split('/')[0].length > 3){
-                        msg += "10s内没人猜出来啦，再给你们个提示\n"
-                        msg += "这个单词的前三个字母是${obj.word[0]}${obj.word[1]}${obj.word[2]}"
-                        this.sendMsg()
+                    // 第一个提示
+                    // 给出第一个字母
+                    msg += "5s内没人猜出来哦，给你们个小提示\n"
+                    msg += "这个单词的首字母是${obj.word[0]}"
+                    this.sendMsg()
+                    objEvent = listenFor(5000, obj.word)
+                    if(objEvent == null){
+                        // 第二个提示，当单词长度大于3才给，给出第二个字母
+                        if (obj.word.split('/')[0].length > 3){
+                            msg += "10s内没人猜出来啦，再给你们个提示\n"
+                            msg += "这个单词的前三个字母是${obj.word[0]}${obj.word[1]}${obj.word[2]}"
+                            this.sendMsg()
+                        }
+                        objEvent = listenFor(10_000, obj.word)
                     }
-                    objEvent = listenFor(10_000, obj.word)
                 }
-            }
 
-            if(objEvent == null) {
-                // 没有人回答出来
-                msg += "时间到，很可惜没有人答对。\n"
-            } else {
-                // 有人回答出来了，加分
-                val answered = mutableSetOf<Long>(objEvent.sender.id)
-                val first = objEvent.sender.id
-                val timeOutMills = 1_000L
-                score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)
+                if(objEvent == null) {
+                    // 没有人回答出来
+                    msg += "时间到，很可惜没有人答对。\n"
+                    hardWords.add(obj)
+                } else {
+                    // 有人回答出来了，加分
+                    val answered = mutableSetOf<Long>(objEvent.sender.id)
+                    val first = objEvent.sender.id
+                    val timeOutMills = 1_000L
+                    score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)
 
-                nextEventOrNull<GroupMessageEvent>(timeOutMills) {
-                    if (it.message.contentToString().trim().equals(obj.word, ignoreCase = true) &&
-                        !answered.contains(it.sender.id)) {
-                        answered.add(it.sender.id)
-                        score[it.sender.id] = 1 + score.getValue(it.sender.id)
+                    nextEventOrNull<GroupMessageEvent>(timeOutMills) {
+                        if (it.message.contentToString().trim().equals(obj.word, ignoreCase = true) &&
+                            !answered.contains(it.sender.id)) {
+                            answered.add(it.sender.id)
+                            score[it.sender.id] = 1 + score.getValue(it.sender.id)
+                        }
+                        false // Keep listening
                     }
-                    false // Keep listening
-                }
-                msg += """
+                    msg += """
                     #${at(first)}首先回答正确，获得2分，当前积分${score[first]}。
                     #其他在${timeOutMills}ms内回答正确的有：
-                    ${(answered - first).joinToString("\n") { 
+                    ${(answered - first).joinToString("\n") {
                         "#${at(it)}获得1分，当前积分${score[it]}分。"
                     }}
                     #""".trimMargin("#")
+                }
+
+                // 录入正确答案
+                msg += "正确答案：${obj.word}\n"
+                msg += obj.trans.joinToString(separator = "\n") {
+                    "[${it.pos}] ${it.tran}"
+                }
+                if( index != words.size - 1)msg += "\n3s后继续，输入\"gkd\"立即开始下一题哦"
+                else if(hardWords.size == 0) msg += "\n3s后公布结果，输入\"gkd\"立即公布哦"
+                else msg += "\n这一轮中还有${hardWords.size}个单词没有答对哦，将在下一轮对这些单词进行复习"
+
+                this.sendMsg()
+                // 等待3s
+                listenFor(3_000, "gkd")
             }
-
-            // 录入正确答案
-            msg += "正确答案：${obj.word}\n"
-            msg += obj.trans.joinToString(separator = "\n") {
-                "[${it.pos}] ${it.tran}"
-            }
-
-            if( quesIndex != quesnum )msg += "\n3s后继续，输入\"gkd\"立即开始下一题哦"
-            else msg += "\n3s后公布结果，输入\"gkd\"立即公布哦"
-
-            this.sendMsg()
-
-            // 等待3s
-            listenFor(3_000, "gkd")
+            words = hardWords
+            hardWords = mutableSetOf()
         }
+
         // 结束，打印玩家列表
         msg += "游戏结束！本局游戏得分如下：\n" +
         score.entries.sortedByDescending { it.value }.joinToString("\n") { (playerId, score) ->
