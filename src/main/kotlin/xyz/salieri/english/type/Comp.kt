@@ -29,7 +29,6 @@ val timeDelay: Long = 5_000
 
 class Comp(number: Long){
     var quesnum: Int = 0
-    var quesindex: Int = 0
     var state: Int = STATE_SLEEP
     var groupnum: Long = number
     var book: String = "CET4"
@@ -74,7 +73,6 @@ class Comp(number: Long){
             this.msg += "不合法的题目数量（合法范围为[${timesFloor},${timesCeil}]），设置为默认数量${timesDefault}\n"
             num = timesDefault
         }
-        this.quesindex = 1
         this.quesnum = num
         // 状态
         this.state = STATE_READY
@@ -94,10 +92,10 @@ class Comp(number: Long){
     suspend fun run(){
         this.state = STATE_RUNNING
         val chan = GlobalEventChannel.filter{ it is GroupMessageEvent && it.group.id == this.groupnum } // 本群消息的信道
-        while( this.quesindex <= quesnum ) {
+        for (quesIndex in 1..quesnum) {
             // 产生随机一道题目，打印信息
             val obj: Word = randomword(this.book)
-            this.msg = wordToQuestion(this.quesindex,this.quesnum,obj,this.timelim)
+            this.msg = wordToQuestion(quesIndex,this.quesnum,obj,this.timelim)
             this.sendMsg()
             // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
             suspend fun listenFor(timeoutMillis: Long, expects: String): GroupMessageEvent? {
@@ -159,10 +157,8 @@ class Comp(number: Long){
                 "[${it.pos}] ${it.tran}"
             }
 
-            if( quesindex != quesnum )msg += "\n3s后继续，输入\"gkd\"立即开始下一题哦"
+            if( quesIndex != quesnum )msg += "\n3s后继续，输入\"gkd\"立即开始下一题哦"
             else msg += "\n3s后公布结果，输入\"gkd\"立即公布哦"
-
-            this.quesindex ++
 
             this.sendMsg()
 
