@@ -1,6 +1,7 @@
 package xyz.salieri.english.type
 
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import net.mamoe.mirai.contact.Group
@@ -27,6 +28,25 @@ val timesDefault = 10
 
 val timeLimit: Long = 20_000
 val timeDelay: Long = 5_000
+
+class HintTask(_comp: Comp, _obj: Word): TimerTask() {
+    val comp = _comp
+    val obj = _obj
+    override fun run() {
+        runBlocking {
+            delay(5_000L)
+            comp.msg += "5s内没人猜出来哦，给你们个小提示\n"
+            comp.msg += "这个单词的首字母是${obj.word[0]}"
+            comp.sendMsg()
+            delay(5_000L)
+            if (obj.word.split('/')[0].length > 3){
+                comp.msg += "10s内没人猜出来啦，再给你们个提示\n"
+                comp.msg += "这个单词的前三个字母是${obj.word[0]}${obj.word[1]}${obj.word[2]}"
+                comp.sendMsg()
+            }
+        }
+    }
+}
 
 class Comp(number: Long){
     var quesnum: Int = 0
@@ -112,24 +132,10 @@ class Comp(number: Long){
                 this.msg = wordToQuestion(index + 1, words.size ,obj, this.timelim)
                 this.sendMsg()
                 // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
-                var objEvent: GroupMessageEvent? = listenFor(5000L, obj.word)
-                if(objEvent == null){
-                    // 第一个提示
-                    // 给出第一个字母
-                    msg += "5s内没人猜出来哦，给你们个小提示\n"
-                    msg += "这个单词的首字母是${obj.word[0]}"
-                    this.sendMsg()
-                    objEvent = listenFor(5000, obj.word)
-                    if(objEvent == null){
-                        // 第二个提示，当单词长度大于3才给，给出第二个字母
-                        if (obj.word.split('/')[0].length > 3){
-                            msg += "10s内没人猜出来啦，再给你们个提示\n"
-                            msg += "这个单词的前三个字母是${obj.word[0]}${obj.word[1]}${obj.word[2]}"
-                            this.sendMsg()
-                        }
-                        objEvent = listenFor(10_000, obj.word)
-                    }
-                }
+                val t = Timer()
+                t.schedule(HintTask(this, obj), 0L)
+                var objEvent: GroupMessageEvent? = listenFor(20_000L, obj.word)
+                t.cancel()
 
                 if(objEvent == null) {
                     // 没有人回答出来
