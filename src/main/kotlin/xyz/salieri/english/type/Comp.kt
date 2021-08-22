@@ -2,20 +2,13 @@ package xyz.salieri.english.type
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
-import net.mamoe.mirai.contact.Group
+import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.events.GroupMessageEvent
-import javax.swing.GroupLayout
-import net.mamoe.mirai.contact.User
-import net.mamoe.mirai.contact.getMember
-import net.mamoe.mirai.Bot
-import net.mamoe.mirai.message.nextMessageOrNull
-import xyz.salieri.mirai.plugin.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import net.mamoe.mirai.event.*
-import xyz.salieri.mirai.plugin.EnglishUserData
+import net.mamoe.mirai.event.nextEventOrNull
+import xyz.salieri.mirai.plugin.Util
+import xyz.salieri.mirai.plugin.getBooks
+import xyz.salieri.mirai.plugin.randomword
+import xyz.salieri.mirai.plugin.wordToQuestion
 import java.util.*
 
 val STATE_SLEEP = 0             // 等待设置

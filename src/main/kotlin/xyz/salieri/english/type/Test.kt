@@ -2,7 +2,7 @@ package xyz.salieri.english.type
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import net.mamoe.mirai.console.data.*
+
 @Serializable
 data class Test(
     @SerialName("id")

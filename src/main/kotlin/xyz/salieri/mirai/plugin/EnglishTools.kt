@@ -2,11 +2,7 @@ package xyz.salieri.mirai.plugin
 
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import net.mamoe.mirai.event.EventPriority
-import net.mamoe.mirai.event.events.MessageEvent
-import net.mamoe.mirai.event.syncFromEventOrNull
 import xyz.salieri.english.type.Word
-import xyz.salieri.english.type.defaultword
 
 typealias WordTable = Map<String, Word>
 internal val CustomJson = Json {
