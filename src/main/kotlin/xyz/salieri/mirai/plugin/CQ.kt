@@ -1,7 +1,5 @@
 package xyz.salieri.mirai.plugin
 
-import net.mamoe.mirai.contact.User
-import net.mamoe.mirai.contact.getMember
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.message.code.MiraiCode.deserializeMiraiCode
 

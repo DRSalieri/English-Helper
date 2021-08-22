@@ -1,7 +1,5 @@
 package xyz.salieri.english.type
 
-import xyz.salieri.english.type.Comp
-
 object Comps{
     val comps: MutableList<Comp> = mutableListOf()              // 组织所有群的comp
     fun getComp(groupnum: Long): Int{                           // 判断群groupnum是否有comp

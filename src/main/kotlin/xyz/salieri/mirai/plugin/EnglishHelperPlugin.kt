@@ -2,20 +2,14 @@ package xyz.salieri.mirai.plugin
 
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.register
 import net.mamoe.mirai.console.command.CommandManager.INSTANCE.unregister
-import net.mamoe.mirai.console.data.PluginData
-import net.mamoe.mirai.console.data.PluginDataHolder
-import net.mamoe.mirai.console.data.PluginDataStorage
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.events.GroupMessageEvent
-import net.mamoe.mirai.event.whileSelectMessages
-import xyz.salieri.mirai.plugin.bot
 import net.mamoe.mirai.utils.info
-import xyz.salieri.mirai.plugin.command.*
 import xyz.salieri.english.type.Comps
-import xyz.salieri.english.type.STATE_RUNNING
-import xyz.salieri.english.type.STATE_SLEEP
+import xyz.salieri.mirai.plugin.command.EnglishInfoCommand
+import xyz.salieri.mirai.plugin.command.EnglishRandCommand
 
 object EnglishHelperPlugin : KotlinPlugin(
     JvmPluginDescription(

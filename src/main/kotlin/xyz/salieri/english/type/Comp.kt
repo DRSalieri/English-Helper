@@ -2,20 +2,13 @@ package xyz.salieri.english.type
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
-import net.mamoe.mirai.contact.Group
+import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.events.GroupMessageEvent
-import javax.swing.GroupLayout
-import net.mamoe.mirai.contact.User
-import net.mamoe.mirai.contact.getMember
-import net.mamoe.mirai.Bot
-import net.mamoe.mirai.message.nextMessageOrNull
-import xyz.salieri.mirai.plugin.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import net.mamoe.mirai.event.*
-import xyz.salieri.mirai.plugin.EnglishUserData
+import net.mamoe.mirai.event.nextEventOrNull
+import xyz.salieri.mirai.plugin.Util
+import xyz.salieri.mirai.plugin.getBooks
+import xyz.salieri.mirai.plugin.randomword
+import xyz.salieri.mirai.plugin.wordToQuestion
 import java.util.*
 
 val STATE_SLEEP = 0             // 等待设置
@@ -29,20 +22,26 @@ val timesDefault = 10
 val timeLimit: Long = 20_000
 val timeDelay: Long = 5_000
 
-class HintTask(_comp: Comp, _obj: Word): TimerTask() {
-    val comp = _comp
-    val obj = _obj
+data class HintTask(
+    val group: Long,
+    val obj: Word
+): TimerTask() {
     override fun run() {
         runBlocking {
             delay(5_000L)
-            comp.msg += "5s内没人猜出来哦，给你们个小提示\n"
-            comp.msg += "这个单词的首字母是${obj.word[0]}"
-            comp.sendMsg()
+
+            Util.sendGroupMsg(group, """
+                5s内没人猜出来哦，给你们个小提示：
+                这个单词的首字母是${obj.word[0]}
+                """.trimIndent()
+            )
             delay(5_000L)
             if (obj.word.split('/')[0].length > 3){
-                comp.msg += "10s内没人猜出来啦，再给你们个提示\n"
-                comp.msg += "这个单词的前三个字母是${obj.word[0]}${obj.word[1]}${obj.word[2]}"
-                comp.sendMsg()
+                Util.sendGroupMsg(group, """
+                    10s内没人猜出来啦，再给你们个提示：
+                    这个单词的前三个字母是${obj.word.substring(0, 2)}
+                    """.trimIndent()
+                )
             }
         }
     }
@@ -133,7 +132,7 @@ class Comp(number: Long){
                 this.sendMsg()
                 // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
                 val t = Timer()
-                t.schedule(HintTask(this, obj), 0L)
+                t.schedule(HintTask(groupnum, obj), 0L)
                 var objEvent: GroupMessageEvent? = listenFor(20_000L, obj.word)
                 t.cancel()
 
@@ -166,10 +165,7 @@ class Comp(number: Long){
                 }
 
                 // 录入正确答案
-                msg += "正确答案：${obj.word}\n"
-                msg += obj.trans.joinToString(separator = "\n") {
-                    "[${it.pos}] ${it.tran}"
-                }
+                msg += "正确答案：${obj}\n"
                 if( index != words.size - 1)msg += "\n3s后继续，输入\"gkd\"立即开始下一题哦"
                 else if(hardWords.size == 0) msg += "\n3s后公布结果，输入\"gkd\"立即公布哦"
                 else msg += "\n这一轮中还有${hardWords.size}个单词没有答对哦，将在下一轮对这些单词进行复习"

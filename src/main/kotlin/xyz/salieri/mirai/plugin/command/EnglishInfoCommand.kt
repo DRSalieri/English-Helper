@@ -2,10 +2,8 @@ package xyz.salieri.mirai.plugin.command
 
 import net.mamoe.mirai.console.command.CommandSenderOnMessage
 import net.mamoe.mirai.console.command.CompositeCommand
-import net.mamoe.mirai.console.command.CommandSender
-import net.mamoe.mirai.message.data.buildMessageChain
-import net.mamoe.mirai.message.data.toPlainText
-import xyz.salieri.mirai.plugin.*
+import xyz.salieri.mirai.plugin.EnglishHelperPlugin
+import xyz.salieri.mirai.plugin.coin
 
 object EnglishInfoCommand : CompositeCommand(
     owner = EnglishHelperPlugin,
