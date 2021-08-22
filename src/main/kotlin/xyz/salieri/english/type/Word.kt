@@ -8,8 +8,15 @@ data class Word(
     @SerialName("word")
     val word: String,
     @SerialName("trans")
-    val trans: List<Tran>
-)
+    val trans: List<Tran>,
+) {
+    override fun toString(): String {
+        return word + "\n" + trans.joinToString("\n") {
+            "[${it.pos}]  ${it.tran}"
+        }
+    }
+}
+
 @Serializable
 data class Tran(
     @SerialName("tran")

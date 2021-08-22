@@ -166,10 +166,7 @@ class Comp(number: Long){
                 }
 
                 // 录入正确答案
-                msg += "正确答案：${obj.word}\n"
-                msg += obj.trans.joinToString(separator = "\n") {
-                    "[${it.pos}] ${it.tran}"
-                }
+                msg += "正确答案：${obj}\n"
                 if( index != words.size - 1)msg += "\n3s后继续，输入\"gkd\"立即开始下一题哦"
                 else if(hardWords.size == 0) msg += "\n3s后公布结果，输入\"gkd\"立即公布哦"
                 else msg += "\n这一轮中还有${hardWords.size}个单词没有答对哦，将在下一轮对这些单词进行复习"

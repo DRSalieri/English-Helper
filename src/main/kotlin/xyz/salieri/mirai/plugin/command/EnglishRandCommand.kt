@@ -20,13 +20,8 @@ object EnglishRandCommand : SimpleCommand(
     @Handler
     suspend fun CommandSenderOnMessage<*>.handle(book: String) {
         try {
-            val t: Word = randomword(book)
-            sendMessage( t.word +
-                t.trans.joinToString("\n") {
-                    "[${it.pos}]  ${it.tran}"
-                }
-            )
-        } catch (e: java.io.FileNotFoundException) {
+            sendMessage(randomword(book).toString())
+        } catch (e: IOException) {
             sendMessage(
                 "不存在${book}这本单词书，目前存在的单词书有：\n" + getBooks()
             )
