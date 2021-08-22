@@ -29,20 +29,26 @@ val timesDefault = 10
 val timeLimit: Long = 20_000
 val timeDelay: Long = 5_000
 
-class HintTask(_comp: Comp, _obj: Word): TimerTask() {
-    val comp = _comp
-    val obj = _obj
+data class HintTask(
+    val group: Long,
+    val obj: Word
+): TimerTask() {
     override fun run() {
         runBlocking {
             delay(5_000L)
-            comp.msg += "5s内没人猜出来哦，给你们个小提示\n"
-            comp.msg += "这个单词的首字母是${obj.word[0]}"
-            comp.sendMsg()
+
+            Util.sendGroupMsg(group, """
+                5s内没人猜出来哦，给你们个小提示：
+                这个单词的首字母是${obj.word[0]}
+                """.trimIndent()
+            )
             delay(5_000L)
             if (obj.word.split('/')[0].length > 3){
-                comp.msg += "10s内没人猜出来啦，再给你们个提示\n"
-                comp.msg += "这个单词的前三个字母是${obj.word[0]}${obj.word[1]}${obj.word[2]}"
-                comp.sendMsg()
+                Util.sendGroupMsg(group, """
+                    10s内没人猜出来啦，再给你们个提示：
+                    这个单词的前三个字母是${obj.word.substring(0, 2)}
+                    """.trimIndent()
+                )
             }
         }
     }
@@ -133,7 +139,7 @@ class Comp(number: Long){
                 this.sendMsg()
                 // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
                 val t = Timer()
-                t.schedule(HintTask(this, obj), 0L)
+                t.schedule(HintTask(groupnum, obj), 0L)
                 var objEvent: GroupMessageEvent? = listenFor(20_000L, obj.word)
                 t.cancel()
 
