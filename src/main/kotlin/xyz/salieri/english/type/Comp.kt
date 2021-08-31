@@ -25,7 +25,10 @@ val timesFloor = 5
 val timesDefault = 10
 
 val timeLimit: Long = 20_000
-val timeDelay: Long = 5_000
+val tipsLimit: Long = 10_000
+var secondLimit: Long = timeLimit - tipsLimit
+var tipsNum: Int = 3
+val waitLimit: Long = 1_000
 
 class Comp(number: Long){
     var quesnum: Int = 0
@@ -93,37 +96,35 @@ class Comp(number: Long){
     @OptIn(ExperimentalStdlibApi::class)
     suspend fun run(){
         this.state = STATE_RUNNING
-        val chan = GlobalEventChannel.filter{ it is GroupMessageEvent && it.group.id == this.groupnum } // 本群消息的信道
         while( this.quesindex <= quesnum ) {
             // 产生随机一道题目，打印信息
             val obj: Word = randomword(this.book)
             this.msg = wordToQuestion(this.quesindex,this.quesnum,obj,this.timelim)
             this.sendMsg()
-            // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
+            // 建立【带超时的监听】
             suspend fun listenFor(timeoutMillis: Long, expects: String): GroupMessageEvent? {
                 return nextEventOrNull<GroupMessageEvent>(timeoutMillis) {
                     expects.split("/").any {expect ->
-                        it.message.contentToString().trim().equals(expect, ignoreCase = true)
-                    }
+                        it.message.contentToString().trim().equals(expect, ignoreCase = true)       // 用"/"分割标准答案，只要答对一个就正确
+                    } && it.group.id == this.groupnum                                               // 过滤本群消息
                 }
             }
-            var objEvent: GroupMessageEvent? = listenFor(5000L, obj.word)
+            var objEvent: GroupMessageEvent? = listenFor(tipsLimit, obj.word)                       // 提示前监听
             if(objEvent == null){
-                // 第一个提示
-                // 给出第一个字母
-                msg += "5s内没人猜出来哦，给你们个小提示\n"
-                msg += "这个单词的首字母是${obj.word[0]}"
-                this.sendMsg()
-                objEvent = listenFor(5000, obj.word)
-                if(objEvent == null){
-                    // 第二个提示，当单词长度大于3才给，给出第二个字母
-                    if (obj.word.split('/')[0].length > 3){
-                        msg += "10s内没人猜出来啦，再给你们个提示\n"
-                        msg += "这个单词的前三个字母是${obj.word[0]}${obj.word[1]}${obj.word[2]}"
-                        this.sendMsg()
-                    }
-                    objEvent = listenFor(10_000, obj.word)
+                // 提示
+                // tipsLimit没人答出来的话，给出前一半的字母
+                msg += "${tipsLimit / 1000}s内没人猜出来哦，给你们个小提示\n"
+                tipsNum = obj.word.split("/")[0].length / 2
+                if( tipsNum > 0 ){
+                    // 满足条件，进行提示
+                    msg += "这个单词的前${tipsNum}个字母是${obj.word.substring(0,tipsNum)}"
+                } else {
+                    // 否则给出首字母
+                    msg += "这个单词的首字母是${obj.word[0]}"
                 }
+                this.sendMsg()
+
+                objEvent = listenFor(secondLimit, obj.word)                                         // 提示后监听
             }
 
             if(objEvent == null) {
@@ -131,14 +132,17 @@ class Comp(number: Long){
                 msg += "时间到，很可惜没有人答对。\n"
             } else {
                 // 有人回答出来了，加分
-                val answered = mutableSetOf<Long>(objEvent.sender.id)
-                val first = objEvent.sender.id
-                val timeOutMills = 1_000L
-                score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)
+                val answered = mutableSetOf<Long>(objEvent.sender.id)                               // 回答者列表
+                val first = objEvent.sender.id                                                      // 首先回答的人
+                val timeOutMills = waitLimit                                                        // 同时回答的时限
+                score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)                  // 首先回答者加2分
 
-                nextEventOrNull<GroupMessageEvent>(timeOutMills) {
-                    if (it.message.contentToString().trim().equals(obj.word, ignoreCase = true) &&
-                        !answered.contains(it.sender.id)) {
+                nextEventOrNull<GroupMessageEvent>(timeOutMills) {                                  // 监听timeOutMills，给同时回答者加1分
+                    if ( obj.word.split("/").any {expect ->                                // 用"/"分割标准答案，只要答对一个就正确
+                            it.message.contentToString().trim().equals(expect, ignoreCase = true)
+                        }                                &&
+                        !answered.contains(it.sender.id) &&                                         // sender的id不被包括在里面
+                        it.group.id == this.groupnum      ) {                                       // 群号匹配
                         answered.add(it.sender.id)
                         score[it.sender.id] = 1 + score.getValue(it.sender.id)
                     }
