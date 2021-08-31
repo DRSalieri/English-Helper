@@ -14,6 +14,7 @@ import java.util.*
 val STATE_SLEEP = 0             // 等待设置
 val STATE_READY = 1             // 等待启动
 val STATE_RUNNING = 2           // 正在运行
+val STATE_STOP = 3              // 强制结束
 
 val timesCeil = 30
 val timesFloor = 5
@@ -177,6 +178,9 @@ class Comp(number: Long){
                 this.sendMsg()
                 // 等待3s
                 listenFor(3_000, "gkd")
+                if (state == STATE_STOP) {
+                    return
+                }
             }
             words = hardWords
             hardWords = mutableSetOf()

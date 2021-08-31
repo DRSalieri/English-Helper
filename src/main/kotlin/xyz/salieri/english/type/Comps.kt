@@ -38,14 +38,21 @@ object Comps{
                 comp.set(msg, groupnum)
                 comp.sendMsg()
             }
-        } else if(msg == "开始"){
-            if(comp.state == STATE_SLEEP){
-                comp.msg += "还未完成设置，请通过\"背单词 <book> <times>\"命令完成设置"
-                comp.sendMsg()
-            } else if (comp.state == STATE_RUNNING) {
-                return;
-            } else {
-                comp.run()
+        } else {
+            when (msg) {
+                "开始" -> {
+                    if (comp.state == STATE_SLEEP) {
+                        comp.msg += "还未完成设置，请通过\"背单词 <book> <times>\"命令完成设置"
+                        comp.sendMsg()
+                    } else if (comp.state == STATE_RUNNING) {
+                        return;
+                    } else {
+                        comp.run()
+                    }
+                }
+                "结束背单词" -> {
+                    comp.state = STATE_STOP
+                }
             }
         }
 
