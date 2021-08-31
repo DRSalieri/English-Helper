@@ -144,17 +144,20 @@ class Comp(number: Long){
                     val timeOutMills = waitLimit                                                        // 同时回答的时限
                     score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)                  // 首先回答者加2分
 
-                    nextEventOrNull<GroupMessageEvent>(timeOutMills) {                                  // 监听timeOutMills，给同时回答者加1分
-                        if ( obj.word.split("/").any {expect ->                                // 用"/"分割标准答案，只要答对一个就正确
-                                it.message.contentToString().trim().equals(expect, ignoreCase = true)
-                            }                                &&
-                            !answered.contains(it.sender.id) &&                                         // sender的id不被包括在里面
-                            it.group.id == this.groupnum      ) {                                       // 群号匹配
-                            answered.add(it.sender.id)
-                            score[it.sender.id] = 1 + score.getValue(it.sender.id)
+                    val listening = GlobalEventChannel.subscribeAlways<GroupMessageEvent> {
+                        if (group.id == groupnum) {
+                            if (obj.word.split("/").any {expect ->                                // 用"/"分割标准答案，只要答对一个就正确
+                                    it.message.contentToString().trim().equals(expect, ignoreCase = true)
+                                }) {
+                                if (!answered.contains(it.sender.id)) { // sender的id不被包括在里面
+                                    answered.add(it.sender.id)
+                                    score[it.sender.id] = 1 + score.getValue(it.sender.id)
+                                }
+                            }
                         }
-                        false // Keep listening
                     }
+                    delay(1000L)
+                    listening.cancel()
                     msg += "${at(first)}首先回答正确，获得2分，当前积分${score[first]}。"
                     val others = (answered - first).joinToString("\n"){
                         "${at(it)}获得1分，当前积分${score[it]}分。"
