@@ -1,9 +1,9 @@
 package xyz.salieri.english.type
 
 import kotlinx.coroutines.delay
+import net.mamoe.mirai.event.events.GroupMessageEvent
 import kotlinx.coroutines.runBlocking
 import net.mamoe.mirai.event.GlobalEventChannel
-import net.mamoe.mirai.event.events.GroupMessageEvent
 import net.mamoe.mirai.event.nextEventOrNull
 import xyz.salieri.mirai.plugin.Util
 import xyz.salieri.mirai.plugin.getBooks
@@ -20,7 +20,10 @@ val timesFloor = 5
 val timesDefault = 10
 
 val timeLimit: Long = 20_000
-val timeDelay: Long = 5_000
+val tipsLimit: Long = 10_000
+var secondLimit: Long = timeLimit - tipsLimit
+var tipsNum: Int = 3
+val waitLimit: Long = 1_000
 
 data class HintTask(
     val group: Long,
@@ -97,7 +100,6 @@ class Comp(number: Long){
     @OptIn(ExperimentalStdlibApi::class)
     suspend fun run(){
         this.state = STATE_RUNNING
-        val chan = GlobalEventChannel.filter{ it is GroupMessageEvent && it.group.id == this.groupnum } // 本群消息的信道
         var words = mutableSetOf<Word>()
         var hardWords = mutableSetOf<Word>()
         while (words.size < quesnum) {
@@ -107,30 +109,28 @@ class Comp(number: Long){
         suspend fun listenFor(timeoutMillis: Long, expects: String): GroupMessageEvent? {
             return nextEventOrNull<GroupMessageEvent>(timeoutMillis) {
                 expects.split("/").any {expect ->
-                    it.message.contentToString().trim().equals(expect, ignoreCase = true)
-                }
+                    it.message.contentToString().trim().equals(expect, ignoreCase = true)       // 用"/"分割标准答案，只要答对一个就正确
+                } && it.group.id == this.groupnum                                               // 过滤本群消息
             }
         }
         while (words.size > 0) {
             for ((index, obj) in words.withIndex()) {
                 // 产生随机一道题目，打印信息
-                this.msg = wordToQuestion(index + 1, words.size ,obj, this.timelim)
+                this.msg = wordToQuestion(index + 1, words.size, obj, this.timelim)
                 this.sendMsg()
-                // 建立【带超时的监听】，分别是5s（提示第一个字母），5s（提示前三个字母），10s
                 val t = Timer()
-                t.schedule(HintTask(groupnum, """
-                    5s内没人猜出来哦，给你们个小提示：
-                    这个单词的首字母是${obj.word[0]}
-                    """.trimIndent()
-                ), 5000L)
-                if (obj.word.split('/')[0].length > 3) {
-                    t.schedule(HintTask(groupnum, """
-                        10s内没人猜出来啦，再给你们个提示：
-                        这个单词的前三个字母是${obj.word.substring(0, 3)}
-                        """.trimIndent()
-                    ), 10_000L)
-                }
-                var objEvent: GroupMessageEvent? = listenFor(20_000L, obj.word)
+                val tipsNum = obj.word.split("/")[0].length / 2
+                t.schedule(HintTask(groupnum,
+                    "${tipsLimit / 1000}s内没人猜出来哦，给你们个小提示\n"+
+                        if( tipsNum > 0 ){
+                            // 满足条件，进行提示
+                            "这个单词的前${tipsNum}个字母是${obj.word.substring(0,tipsNum)}"
+                        } else {
+                            // 否则给出首字母
+                            "这个单词的首字母是${obj.word[0]}"
+                        }
+                ), tipsLimit)
+                val objEvent: GroupMessageEvent? = listenFor(20_000L, obj.word)
                 t.cancel()
 
                 if(objEvent == null) {
@@ -139,26 +139,30 @@ class Comp(number: Long){
                     hardWords.add(obj)
                 } else {
                     // 有人回答出来了，加分
-                    val answered = mutableSetOf<Long>(objEvent.sender.id)
-                    val first = objEvent.sender.id
-                    val timeOutMills = 1_000L
-                    score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)
+                    val answered = mutableSetOf<Long>(objEvent.sender.id)                               // 回答者列表
+                    val first = objEvent.sender.id                                                      // 首先回答的人
+                    val timeOutMills = waitLimit                                                        // 同时回答的时限
+                    score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)                  // 首先回答者加2分
 
-                    nextEventOrNull<GroupMessageEvent>(timeOutMills) {
-                        if (it.message.contentToString().trim().equals(obj.word, ignoreCase = true) &&
-                            !answered.contains(it.sender.id)) {
+                    nextEventOrNull<GroupMessageEvent>(timeOutMills) {                                  // 监听timeOutMills，给同时回答者加1分
+                        if ( obj.word.split("/").any {expect ->                                // 用"/"分割标准答案，只要答对一个就正确
+                                it.message.contentToString().trim().equals(expect, ignoreCase = true)
+                            }                                &&
+                            !answered.contains(it.sender.id) &&                                         // sender的id不被包括在里面
+                            it.group.id == this.groupnum      ) {                                       // 群号匹配
                             answered.add(it.sender.id)
                             score[it.sender.id] = 1 + score.getValue(it.sender.id)
                         }
                         false // Keep listening
                     }
-                    msg += """
-                    #${at(first)}首先回答正确，获得2分，当前积分${score[first]}。
-                    #其他在${timeOutMills}ms内回答正确的有：
-                    ${(answered - first).joinToString("\n") {
-                        "#${at(it)}获得1分，当前积分${score[it]}分。"
-                    }}
-                    #""".trimMargin("#")
+                    msg += "${at(first)}首先回答正确，获得2分，当前积分${score[first]}。"
+                    val others = (answered - first).joinToString("\n"){
+                        "${at(it)}获得1分，当前积分${score[it]}分。"
+                    }
+                    if (others != ""){
+                        msg += "\n其他在${timeOutMills}ms内回答正确的有：\n"
+                        msg += others
+                    }
                 }
 
                 // 录入正确答案
