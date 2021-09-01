@@ -21,21 +21,21 @@ object EnglishHelperPlugin : KotlinPlugin(
     }
 ) {
     override fun onEnable() {
-         logger.info { "单词竞赛插件已部署." }
-         // 数据
-         EnglishUserData.reload()
-         // 命令
-         EnglishInfoCommand.register()
-         EnglishRandCommand.register()
-         // 监听
-         val eventChannel = GlobalEventChannel.parentScope(this)
-         eventChannel.subscribeAlways<GroupMessageEvent> {
+        logger.info { "单词竞赛插件已部署." }
+        // 数据
+        EnglishUserData.reload()
+        EnglishConfig.reload()
+        // 命令
+        EnglishInfoCommand.register()
+        EnglishRandCommand.register()
+        ConfigurationCommand.register()
+        // 监听
+        val eventChannel = GlobalEventChannel.parentScope(this)
+        eventChannel.subscribeAlways<GroupMessageEvent> {
             if(xyz.salieri.mirai.plugin.bot == null)
                 xyz.salieri.mirai.plugin.bot = bot
-             Comps.mainlogic(group.id, sender.id, message.contentToString())
-         }
-
-
+            Comps.mainlogic(group.id, sender.id, message.contentToString())
+        }
     }
 
     override fun onDisable() {

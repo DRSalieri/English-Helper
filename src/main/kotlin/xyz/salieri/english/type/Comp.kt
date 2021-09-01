@@ -5,10 +5,7 @@ import net.mamoe.mirai.event.events.GroupMessageEvent
 import kotlinx.coroutines.runBlocking
 import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.nextEventOrNull
-import xyz.salieri.mirai.plugin.Util
-import xyz.salieri.mirai.plugin.getBooks
-import xyz.salieri.mirai.plugin.randomword
-import xyz.salieri.mirai.plugin.wordToQuestion
+import xyz.salieri.mirai.plugin.*
 import java.util.*
 
 val STATE_SLEEP = 0             // 等待设置
@@ -20,11 +17,6 @@ val timesCeil = 30
 val timesFloor = 5
 val timesDefault = 10
 
-val timeLimit: Long = 20_000
-val tipsLimit: Long = 10_000
-var secondLimit: Long = timeLimit - tipsLimit
-var tipsNum: Int = 3
-val waitLimit: Long = 1_000
 
 data class HintTask(
     val group: Long,
@@ -45,7 +37,9 @@ class Comp(number: Long){
 
     var msg: String = ""
     var score: MutableMap<Long, Int> = mutableMapOf<Long, Int>().withDefault { 0 }
-    var timelim: Long = timeLimit
+    var timelim: Long = 0
+    var timeTips: Long = 0
+    var waitLimit: Long = 0
 
     fun at(num: Long): String{
         return "[mirai:at:$num]"
@@ -87,13 +81,17 @@ class Comp(number: Long){
         // 状态
         this.state = STATE_READY
         // 时间限制
-        this.timelim = timeLimit
+        this.timelim = EnglishConfig.答题时间 * 1000L
+        this.timeTips = EnglishConfig.提示时间 * 1000L
+        this.waitLimit = EnglishConfig.同时回答
         // 输出信息
         this.msg += """
         群${this.groupnum}的英语竞赛设定完成！
         单词书为：${this.book}
         题目数为：${this.quesnum}
-        时间限制：${this.timelim / 1000}
+        时间限制：${this.timelim / 1000}s
+        提示时间：${this.timeTips / 1000}s
+        同时回答：${this.waitLimit}ms
         请输入"开始"启动竞赛！""".trimIndent()
     }
 
@@ -122,7 +120,7 @@ class Comp(number: Long){
                 val t = Timer()
                 val tipsNum = obj.word.split("/")[0].length / 2
                 t.schedule(HintTask(groupnum,
-                    "${tipsLimit / 1000}s内没人猜出来哦，给你们个小提示\n"+
+                    "${this.timeTips / 1000}s内没人猜出来哦，给你们个小提示\n"+
                         if( tipsNum > 0 ){
                             // 满足条件，进行提示
                             "这个单词的前${tipsNum}个字母是${obj.word.substring(0,tipsNum)}"
@@ -130,7 +128,7 @@ class Comp(number: Long){
                             // 否则给出首字母
                             "这个单词的首字母是${obj.word[0]}"
                         }
-                ), tipsLimit)
+                ), this.timeTips)
                 val objEvent: GroupMessageEvent? = listenFor(20_000L, obj.word)
                 t.cancel()
 
@@ -142,7 +140,6 @@ class Comp(number: Long){
                     // 有人回答出来了，加分
                     val answered = mutableSetOf<Long>(objEvent.sender.id)                               // 回答者列表
                     val first = objEvent.sender.id                                                      // 首先回答的人
-                    val timeOutMills = waitLimit                                                        // 同时回答的时限
                     score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)                  // 首先回答者加2分
 
                     val listening = GlobalEventChannel.subscribeAlways<GroupMessageEvent> {
@@ -157,14 +154,14 @@ class Comp(number: Long){
                             }
                         }
                     }
-                    delay(1000L)
+                    delay(waitLimit) // 同时回答的时限
                     listening.cancel()
                     msg += "${at(first)}首先回答正确，获得2分，当前积分${score[first]}。"
                     val others = (answered - first).joinToString("\n"){
                         "${at(it)}获得1分，当前积分${score[it]}分。"
                     }
                     if (others != ""){
-                        msg += "\n其他在${timeOutMills}ms内回答正确的有：\n"
+                        msg += "\n其他在${waitLimit}ms内回答正确的有：\n"
                         msg += others
                     }
                 }
