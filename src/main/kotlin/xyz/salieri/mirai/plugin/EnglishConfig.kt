@@ -14,7 +14,7 @@ object EnglishConfig : AutoSavePluginConfig("config") {
     @ValueDescription("答题时间，以秒为单位")
     var 答题时间 by value(20L)
     @ValueDescription("提示时间，以秒为单位")
-    var 提示时间 by value(20L)
+    var 提示时间 by value(10L)
     @ValueDescription("同时回答的时限，以豪秒为单位")
     var 同时回答 by value(1000L)
 }
