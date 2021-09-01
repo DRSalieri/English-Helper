@@ -15,7 +15,7 @@ object EnglishHelperPlugin : KotlinPlugin(
     JvmPluginDescription(
         id = "xyz.salieri.mirai.plugin.english-helper",
         name = "english-helper",
-        version = "1.0.0"
+        version = "1.1.0"
     ) {
         author("salieri")
     }

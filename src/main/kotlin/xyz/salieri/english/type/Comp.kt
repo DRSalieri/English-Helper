@@ -1,8 +1,13 @@
 package xyz.salieri.english.type
 
+import kotlinx.atomicfu.locks.ReentrantLock
 import kotlinx.coroutines.delay
 import net.mamoe.mirai.event.events.GroupMessageEvent
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import net.mamoe.mirai.event.GlobalEventChannel
 import net.mamoe.mirai.event.nextEventOrNull
 import xyz.salieri.mirai.plugin.*
@@ -129,42 +134,43 @@ class Comp(number: Long){
                             "这个单词的首字母是${obj.word[0]}"
                         }
                 ), this.timeTips)
-                val objEvent: GroupMessageEvent? = listenFor(20_000L, obj.word)
-                t.cancel()
-
-                if(objEvent == null) {
-                    // 没有人回答出来
-                    msg += "时间到，很可惜没有人答对。\n"
-                    hardWords.add(obj)
-                } else {
-                    // 有人回答出来了，加分
-                    val answered = mutableSetOf<Long>(objEvent.sender.id)                               // 回答者列表
-                    val first = objEvent.sender.id                                                      // 首先回答的人
-                    score[objEvent.sender.id] = 2 + score.getValue(objEvent.sender.id)                  // 首先回答者加2分
-
-                    val listening = GlobalEventChannel.subscribeAlways<GroupMessageEvent> {
-                        if (group.id == groupnum) {
-                            if (obj.word.split("/").any {expect ->                                // 用"/"分割标准答案，只要答对一个就正确
-                                    it.message.contentToString().trim().equals(expect, ignoreCase = true)
-                                }) {
-                                if (!answered.contains(it.sender.id)) { // sender的id不被包括在里面
-                                    answered.add(it.sender.id)
-                                    score[it.sender.id] = 1 + score.getValue(it.sender.id)
+                val answered = Mutex()          // 是否已被回答，已被回答则解锁
+                val correct = Mutex()
+                val answerers = mutableSetOf<Long>()                                                    // 回答者列表
+                answered.lock()
+                val listening = GlobalEventChannel.subscribeAlways<GroupMessageEvent> {
+                    if (group.id == groupnum) {
+                        if (obj.word.split("/").any {expect ->                                // 用"/"分割标准答案，只要答对一个就正确
+                                it.message.contentToString().trim().equals(expect, ignoreCase = true)
+                            }) {
+                            correct.withLock { // 防止多个人同时答对或一个人多次回答对
+                                if (!answerers.contains(sender.id)) { // sender的id不被包括在里面
+                                    if (answerers.size == 0) {
+                                        // 首先答对的人
+                                        score[sender.id] = 2 + score.getValue(sender.id)
+                                        answered.unlock()
+                                        msg += "${at(sender.id)}首先回答正确，获得2分，当前积分${score[sender.id]}。\n"
+                                    } else {
+                                        score[sender.id] = 1 + score.getValue(sender.id)
+                                        msg += "${at(sender.id)}回答正确，获得1分，当前积分${score[sender.id]}。\n"
+                                    }
+                                    answerers.add(sender.id)
                                 }
                             }
                         }
                     }
-                    delay(waitLimit) // 同时回答的时限
-                    listening.cancel()
-                    msg += "${at(first)}首先回答正确，获得2分，当前积分${score[first]}。"
-                    val others = (answered - first).joinToString("\n"){
-                        "${at(it)}获得1分，当前积分${score[it]}分。"
-                    }
-                    if (others != ""){
-                        msg += "\n其他在${waitLimit}ms内回答正确的有：\n"
-                        msg += others
-                    }
                 }
+                if (withTimeoutOrNull(timelim, {
+                        answered.lock()
+                    }) != null) {
+                    // 有人回答出来了，加分
+                    t.cancel()
+                    delay(waitLimit) // 同时回答的时限
+                } else {
+                    msg += "时间到，很可惜没有人答对。\n"
+                    hardWords.add(obj)
+                }
+                listening.cancel()
 
                 // 录入正确答案
                 msg += "正确答案：${obj}\n"
