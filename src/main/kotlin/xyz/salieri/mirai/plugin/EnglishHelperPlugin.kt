@@ -24,9 +24,11 @@ object EnglishHelperPlugin : KotlinPlugin(
         logger.info { "单词竞赛插件已部署." }
         // 数据
         EnglishUserData.reload()
+        EnglishConfig.reload()
         // 命令
         EnglishInfoCommand.register()
         EnglishRandCommand.register()
+        ConfigurationCommand.register()
         // 监听
         val eventChannel = GlobalEventChannel.parentScope(this)
         eventChannel.subscribeAlways<GroupMessageEvent> {

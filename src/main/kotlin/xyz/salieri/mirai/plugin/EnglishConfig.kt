@@ -19,7 +19,7 @@ object EnglishConfig : AutoSavePluginConfig("config") {
     var 同时回答 by value(1000L)
 }
 
-object taskManageCommand : CompositeCommand(
+object ConfigurationCommand : CompositeCommand(
     owner = EnglishHelperPlugin,
     "背单词",
     description = "背单词插件设置",
